@@ -12,7 +12,6 @@
 #include <algorithm>
 #include <concepts>
 #include "platform/LzyPerciseSleep.h"
-
 namespace Lzy::Timer {
 	namespace concepts {
 		template<typename AnyType>
@@ -32,7 +31,7 @@ namespace Lzy::Timer {
 			std::vector<std::list<T>> wheel;
 		public:
 			size_t tick{ 0 };
-			TimeWheel(size_t size): wheel(size){	
+			TimeWheel(size_t size) : wheel(size) {
 			}
 
 			std::list<T>& operator[] (size_t index) {
@@ -41,7 +40,7 @@ namespace Lzy::Timer {
 
 			bool tick_once(auto&& callback) {
 				++tick %= wheel.size();
-			
+
 				std::ranges::for_each(wheel[tick], callback);
 				wheel[tick].clear();
 				return tick == 0;
@@ -121,7 +120,7 @@ namespace Lzy::Timer {
 					return;
 				}
 				tick_num = tick_num / wheel_sizes[i];
-			
+
 				for (size_t i = 1;; i++) {
 					saving_wheel_tick[i] = (tick_num + driven_wheels[i - 1].tick) % wheel_sizes[i];
 					if (tick_num < wheel_sizes[i]) {
@@ -144,17 +143,14 @@ namespace Lzy::Timer {
 		constexpr auto driving_wheel_size = 128u * 64u;
 		constexpr auto driven_wheel_size = 64u;
 
-		struct std_async {
-			static void execute(auto&& any) {
-				auto future = std::async(std::launch::async, std::move(any));
-			}
+		void async(auto&& fn) {
+			auto future = std::async(std::launch::async, std::move(fn));
 		};
 	}
 
 	template<
 		typename Clock = std::chrono::high_resolution_clock,
-		std::invocable Callable = std::function<void()>,
-		typename concepts::executor = Lzy::Timer::std_async
+		std::invocable Callable = std::function<void()>
 	>
 	struct Timer {
 		using time_point = std::chrono::time_point<Clock>;
@@ -165,33 +161,43 @@ namespace Lzy::Timer {
 		Clock::time_point last_tick_time;
 
 	public:
-		Timer(std::chrono::milliseconds tick_time, ) :tick_time(tick_time) {
+		Timer(std::chrono::milliseconds tick_time, std::unsigned_integral auto... wheel_sizes) :tick_time(tick_time) {
+			if constexpr (sizeof...(wheel_sizes) == 0) {
+				time_wheels = { driving_wheel_size, driven_wheel_size, driven_wheel_size, driven_wheel_size };
+			}
+			else
+			{
+				time_wheels = { wheel_sizes... };
+			}
+
 		}
-	public:
+
+
 		void start(const std::invocable<Callable> auto& callback) {
-			std::thread([this]() {
+			std::thread([this, &callback]() {
 				while (true) {
 					Lzy::sleep_for(tick_once(callback) - Clock::now());
 				}
-			}).detach();
+				}).detach();
+		}
+		void start() {
+			start(async<Callable>);
 		}
 
 		void setTimeout(std::invocable auto&& fn, const concepts::chrono_time auto& duration) {
-			if (duration < tick_time) {
-				executor::execute(fn);
-			}
-			else {
-				auto tick_num = (duration / tick_time);
-				time_wheels.add_by_tick(std::move(fn), tick_num);
-			}
+			auto tick_num = (duration / tick_time);
+			time_wheels.add_by_tick(std::move(fn), tick_num);
 		}
 
 		// return when to tick_next;
-		Clock::time_point tick_once(const std::invocable<Callable> auto& callback) {
+		auto tick_once(const std::invocable<Callable> auto& callback) {
 			static auto last_tick_time = Clock::now();
 			last_tick_time += tick_time;
-			time_wheels.tick_once([](const auto& fn) { callback(fn); });
+			time_wheels.tick_once([&](auto&& fn) { callback(std::move(fn)); });
 			return last_tick_time;
 		}
-	}; 
+		auto tick_once() {
+			return tick_once(async<Callable>);
+		}
+	};
 }
