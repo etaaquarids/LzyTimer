@@ -22,7 +22,7 @@ namespace Lzy {
             ~TimerResolutionSetter() {
                 timeEndPeriod(timerRes);
             }
-        }; 
+        };
     }
 
     void sleep_for(std::chrono::nanoseconds seconds) {
@@ -39,7 +39,7 @@ namespace Lzy {
 
         while (seconds - estimate > 1e2ns) {
             auto toWait = seconds - estimate;
-            LARGE_INTEGER due;
+            LARGE_INTEGER due{};
             due.QuadPart = -int64_t(toWait.count() * 1e-2);
             SetWaitableTimerEx(timer, &due, 0, NULL, NULL, NULL, 0);
             auto start = Clock::now();
@@ -51,7 +51,7 @@ namespace Lzy {
             auto error = observed - toWait;
 
             WelfordOnlineVariance(error, m2, mean, count);
-            uint64_t stddev = sqrt(m2 / (count - 1));
+            uint64_t stddev = static_cast<uint64_t>(sqrt(m2 / (count - 1)));
             estimate = std::chrono::nanoseconds((uint64_t)mean.count() + stddev);
         }
 
