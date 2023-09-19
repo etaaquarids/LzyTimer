@@ -32,12 +32,23 @@ struct Test {
 std::chrono::microseconds now() {
 	return std::chrono::duration_cast<std::chrono::microseconds>(Clock::now() - start_time);
 }
+template<typename T>
+void async(T fn) {
+	fn();
+}
+template<typename F = std::function<void()>>
+struct Testt {
+	void tick_once(auto&& fn) {
+		fn([]() { print("?\n"); });
+	}	
+	void tick_once() {
+		tick_once(async<F>);
+	}
+};
 int main()
 {
 	using namespace std::literals::chrono_literals;
 	Lzy::Timer::Timer timer(10ms);
-	
-	
 	timer.setTimeout([]() { print("[{}] work by {}\n", now(), 500ms); }, 500ms);
 	timer.setTimeout([]() { print("[{}] work by {}\n", now(), 600ms); }, 600ms);
 	timer.setTimeout([&]() { 
@@ -51,12 +62,12 @@ int main()
 	timer.setTimeout([]() { print("[{}] work by {}\n", now(), 6000ms); }, 6000ms);
 	int u;
 	timer.start();
+
 	while (true) {
 		std::cin >> u;
 		auto duration = std::chrono::milliseconds(u);
 		auto last = now();
 		timer.setTimeout([=]() { print("{} work by {}\n", duration, now() - last); }, duration);
 	}
-	std::cout << "Hello CMake." << std::endl;
 	return 0;
 }
