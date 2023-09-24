@@ -1,6 +1,8 @@
-#include <Windows.h>
-#pragma comment(lib, "Winmm.lib")
+#pragma once
 #include <chrono>
+#include <timeapi.h>
+#include <WinBase.h>
+#include <cstdint>
 namespace Lzy {
     namespace {
         auto WelfordOnlineVariance(std::chrono::nanoseconds x_n, auto& M2, std::chrono::nanoseconds& mean_of_x_n, auto& n) {

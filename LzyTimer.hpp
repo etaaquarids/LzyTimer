@@ -1,8 +1,4 @@
-﻿// LzyTimer.h: 标准系统包含文件的包含文件
-// 或项目特定的包含文件。
-
-#pragma once
-
+﻿#pragma once
 
 #include <thread>
 #include <future>
@@ -11,7 +7,9 @@
 #include <list>
 #include <algorithm>
 #include <concepts>
+#include <chrono>
 #include "platform/LzyPerciseSleep.h"
+
 namespace Lzy::Timer {
 	namespace concepts {
 		template<typename AnyType>
