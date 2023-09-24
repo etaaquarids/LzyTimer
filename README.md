@@ -17,4 +17,16 @@ while(true){
     sleep_until(time_to_awake);
 }
 ```
+time wheel size can be assigned like
+``` C++
+auto timer = Lzy::Timer::Timer(10ms, 128, 128, 128, ...);
+```
+start and tick_once can receive an executor function to do the functions.
+``` C++
+timer.start([](auto&& fn){ Executor::execute(fn); });
+```
+or
+``` C++
+timer.tick_once(Executor::execute<FunctionType>);
+```
 ### benchmark
